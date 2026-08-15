@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Login - Online Course</title>
+        <link rel="stylesheet" href="/css/app.css">
+        <script src="/js/login.js" defer></script>
+    </head>
+    <body>
+        <main class="app-shell auth-only">
+            <section class="topbar">
+                <div>
+                    <p class="eyebrow">Online Course</p>
+                    <h1>Login to continue</h1>
+                </div>
+            </section>
+
+            <aside class="auth-panel">
+                <div class="tabs" role="tablist" aria-label="Authentication">
+                    <button class="tab active" type="button" data-auth-tab="login">Login</button>
+                    <button class="tab" type="button" data-auth-tab="register">Register</button>
+                </div>
+
+                <form id="loginForm" class="auth-form">
+                    <label>
+                        Email
+                        <input name="email" type="email" autocomplete="email" required>
+                    </label>
+                    <label>
+                        Password
+                        <input name="password" type="password" autocomplete="current-password" required>
+                    </label>
+                    <button type="submit">Login</button>
+                </form>
+
+                <form id="registerForm" class="auth-form hidden">
+                    <label>
+                        Name
+                        <input name="name" type="text" autocomplete="name" required>
+                    </label>
+                    <label>
+                        Email
+                        <input name="email" type="email" autocomplete="email" required>
+                    </label>
+                    <label>
+                        Password
+                        <input name="password" type="password" autocomplete="new-password" minlength="8" required>
+                    </label>
+                    <label>
+                        Role
+                        <select name="role">
+                            <option value="student">Student</option>
+                            <option value="instructor">Instructor</option>
+                        </select>
+                    </label>
+                    <button type="submit">Create account</button>
+                </form>
+
+                <p class="message" id="authMessage"></p>
+            </aside>
+        </main>
+    </body>
+</html>

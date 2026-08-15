@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Courses - Online Course</title>
+        <link rel="stylesheet" href="/css/app.css">
+        <script src="/js/catalog.js" defer></script>
+    </head>
+    <body class="catalog-page">
+        <main class="catalog-shell">
+            <section class="catalog-toolbar" aria-label="Course search and sorting">
+                <label class="catalog-search">
+                    <span class="visually-hidden">Search courses</span>
+                    <svg aria-hidden="true" viewBox="0 0 24 24">
+                        <path d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"></path>
+                    </svg>
+                    <input id="courseSearch" type="search" placeholder="Search courses..." autocomplete="off">
+                </label>
+
+                <p class="catalog-count">Showing <strong id="catalogCount">0</strong> courses</p>
+
+                <label class="catalog-sort">
+                    <span>Sort by:</span>
+                    <select id="courseSort">
+                        <option value="popular">Most Popular</option>
+                        <option value="newest">Newest</option>
+                        <option value="price_low">Price: Low to High</option>
+                    </select>
+                </label>
+            </section>
+
+            <section class="catalog-layout">
+                <aside class="catalog-filters" aria-label="Course filters">
+                    <div class="filter-group">
+                        <h2>Categories</h2>
+                        <div id="categoryFilters" class="filter-options"></div>
+                    </div>
+
+                    <div class="filter-group">
+                        <h2>Difficulty Level</h2>
+                        <label class="filter-choice">
+                            <input type="radio" name="difficulty" value="beginner">
+                            <span>Beginner</span>
+                        </label>
+                        <label class="filter-choice">
+                            <input type="radio" name="difficulty" value="intermediate">
+                            <span>Intermediate</span>
+                        </label>
+                        <label class="filter-choice">
+                            <input type="radio" name="difficulty" value="advanced">
+                            <span>Advanced</span>
+                        </label>
+                    </div>
+
+                    <div class="filter-group">
+                        <h2>Price Range</h2>
+                        <label class="filter-choice">
+                            <input type="checkbox" name="price" value="free">
+                            <span>Free</span>
+                        </label>
+                        <label class="filter-choice">
+                            <input type="checkbox" name="price" value="paid">
+                            <span>Paid</span>
+                        </label>
+                    </div>
+                </aside>
+
+                <div class="catalog-results">
+                    <div id="courseList" class="catalog-course-list"></div>
+                    <p class="catalog-alert" id="catalogAlert" hidden></p>
+                    <nav class="catalog-pagination" aria-label="Course pagination">
+                        <button id="previousPage" type="button" aria-label="Previous page">
+                            <svg aria-hidden="true" viewBox="0 0 24 24">
+                                <path d="m15 18-6-6 6-6"></path>
+                            </svg>
+                        </button>
+                        <span id="currentPage">1</span>
+                        <button id="nextPage" type="button" aria-label="Next page">
+                            <svg aria-hidden="true" viewBox="0 0 24 24">
+                                <path d="m9 18 6-6-6-6"></path>
+                            </svg>
+                        </button>
+                    </nav>
+                </div>
+            </section>
+        </main>
+    </body>
+</html>

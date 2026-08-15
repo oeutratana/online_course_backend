@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Dashboard - Online Course</title>
+        <link rel="stylesheet" href="/css/app.css">
+        <script src="/js/app.js" defer></script>
+    </head>
+    <body>
+        <main class="app-shell">
+            <section class="topbar">
+                <div>
+                    <p class="eyebrow">Online Course</p>
+                    <h1>Protected learning dashboard</h1>
+                </div>
+                <div class="session-pill" id="sessionStatus">Checking</div>
+            </section>
+
+            <section class="data-panel">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">API</p>
+                        <h2>Sanctum protected data</h2>
+                    </div>
+                    <div class="panel-actions">
+                        <button class="secondary-action" id="refreshButton" type="button">Refresh</button>
+                        <button class="secondary-action" id="logoutButton" type="button" hidden>Logout</button>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <article>
+                        <span>Courses</span>
+                        <strong id="courseCount">0</strong>
+                    </article>
+                    <article>
+                        <span>Users</span>
+                        <strong id="userCount">0</strong>
+                    </article>
+                    <article>
+                        <span>Enrollments</span>
+                        <strong id="enrollmentCount">0</strong>
+                    </article>
+                    <article>
+                        <span>Payments</span>
+                        <strong id="paymentCount">0</strong>
+                    </article>
+                </div>
+
+                <div class="profile-strip" id="profileStrip">
+                    Protected by web middleware and Sanctum API middleware.
+                </div>
+
+                <form id="addUserForm" class="add-user-form">
+                    <div class="form-title">
+                        <p class="eyebrow">Users</p>
+                        <h3>Add user</h3>
+                    </div>
+                    <label>
+                        Name
+                        <input name="name" type="text" autocomplete="off" required>
+                    </label>
+                    <label>
+                        Email
+                        <input name="email" type="email" autocomplete="off" required>
+                    </label>
+                    <label>
+                        Password
+                        <input name="password" type="password" minlength="8" required>
+                    </label>
+                    <label>
+                        Role
+                        <select name="role">
+                            <option value="student">Student</option>
+                            <option value="instructor">Instructor</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </label>
+                    <button type="submit">Add user</button>
+                </form>
+
+                <form id="categoryForm" class="category-form">
+                    <div class="form-title">
+                        <p class="eyebrow">Categories</p>
+                        <h3 id="categoryFormTitle">Add category</h3>
+                    </div>
+                    <input name="id" type="hidden">
+                    <label>
+                        Name
+                        <input name="name" type="text" autocomplete="off" required>
+                    </label>
+                    <label>
+                        Slug
+                        <input name="slug" type="text" autocomplete="off" placeholder="Auto-generated if empty">
+                    </label>
+                    <label class="wide-field">
+                        Description
+                        <textarea name="description" rows="2"></textarea>
+                    </label>
+                    <div class="form-actions">
+                        <button type="submit" id="categorySubmitButton">Add category</button>
+                        <button class="secondary-action" id="cancelCategoryEditButton" type="button" hidden>Cancel edit</button>
+                    </div>
+                </form>
+
+                <form id="courseForm" class="course-form">
+                    <div class="form-title">
+                        <p class="eyebrow">Course</p>
+                        <h3 id="courseFormTitle">Add course</h3>
+                    </div>
+                    <input name="id" type="hidden">
+                    <label>
+                        Title
+                        <input name="title" type="text" autocomplete="off" required>
+                    </label>
+                    <label>
+                        Category
+                        <select name="category_id" id="categorySelect">
+                            <option value="">Uncategorized</option>
+                        </select>
+                    </label>
+                    <label>
+                        Price
+                        <input name="price" type="number" min="0" step="0.01" value="0" required>
+                    </label>
+                    <label>
+                        Thumbnail URL
+                        <input name="thumbnail" type="url" autocomplete="off">
+                    </label>
+                    <label>
+                        Video URL
+                        <input name="video_url" type="url" autocomplete="off">
+                    </label>
+                    <label class="checkbox-field">
+                        <input name="is_published" type="checkbox">
+                        Published
+                    </label>
+                    <label class="wide-field">
+                        Description
+                        <textarea name="description" rows="3"></textarea>
+                    </label>
+                    <div class="form-actions">
+                        <button type="submit" id="courseSubmitButton">Add course</button>
+                        <button class="secondary-action" id="cancelEditButton" type="button" hidden>Cancel edit</button>
+                    </div>
+                </form>
+
+                <p class="message" id="authMessage"></p>
+                <div class="user-list" id="userList"></div>
+                <div class="category-list" id="categoryList"></div>
+                <div class="course-list" id="courseList"></div>
+            </section>
+        </main>
+    </body>
+</html>

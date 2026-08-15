@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Student Dashboard - Online Course</title>
+        <link rel="stylesheet" href="/css/app.css">
+        <script src="/js/student.js" defer></script>
+    </head>
+    <body>
+        <main class="app-shell">
+            <section class="topbar">
+                <div>
+                    <p class="eyebrow">Online Course</p>
+                    <h1>Student dashboard</h1>
+                </div>
+                <div class="session-pill" id="sessionStatus">Checking</div>
+            </section>
+
+            <section class="data-panel">
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">Courses</p>
+                        <h2>Available learning</h2>
+                    </div>
+                    <div class="panel-actions">
+                        <button class="secondary-action" id="refreshButton" type="button">Refresh</button>
+                        <button class="secondary-action" id="logoutButton" type="button" hidden>Logout</button>
+                    </div>
+                </div>
+
+                <div class="stats-grid student-stats">
+                    <article>
+                        <span>Courses</span>
+                        <strong id="courseCount">0</strong>
+                    </article>
+                </div>
+
+                <div class="profile-strip" id="profileStrip">
+                    Student area protected by auth middleware and Sanctum API middleware.
+                </div>
+
+                <form id="courseForm" class="course-form">
+                    <div class="form-title">
+                        <p class="eyebrow">Course</p>
+                        <h3 id="courseFormTitle">Add course</h3>
+                    </div>
+                    <input name="id" type="hidden">
+                    <label>
+                        Title
+                        <input name="title" type="text" autocomplete="off" required>
+                    </label>
+                    <label>
+                        Category
+                        <select name="category_id" id="categorySelect">
+                            <option value="">Uncategorized</option>
+                        </select>
+                    </label>
+                    <label>
+                        Price
+                        <input name="price" type="number" min="0" step="0.01" value="0" required>
+                    </label>
+                    <label>
+                        Thumbnail URL
+                        <input name="thumbnail" type="url" autocomplete="off">
+                    </label>
+                    <label>
+                        Video URL
+                        <input name="video_url" type="url" autocomplete="off">
+                    </label>
+                    <label class="checkbox-field">
+                        <input name="is_published" type="checkbox">
+                        Published
+                    </label>
+                    <label class="wide-field">
+                        Description
+                        <textarea name="description" rows="3"></textarea>
+                    </label>
+                    <div class="form-actions">
+                        <button type="submit" id="courseSubmitButton">Add course</button>
+                        <button class="secondary-action" id="cancelEditButton" type="button" hidden>Cancel edit</button>
+                    </div>
+                </form>
+
+                <p class="message" id="authMessage"></p>
+                <div class="course-list" id="courseList"></div>
+            </section>
+        </main>
+    </body>
+</html>
