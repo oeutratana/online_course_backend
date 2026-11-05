@@ -31,16 +31,36 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
-    'bakong' => [
-        'base_url' => env('BAKONG_API_BASE_URL', 'https://api.bakong-api.online'),
-        'official_base_url' => env('BAKONG_OFFICIAL_BASE_URL', 'https://api-bakong.nbc.gov.kh'),
-        'token' => env('BAKONG_TOKEN'),
-        'bakong_id' => env('BAKONG_ID'),
-        'merchant_name' => env('BAKONG_MERCHANT_NAME', env('APP_NAME', 'Online Course')),
-        'merchant_city' => env('BAKONG_MERCHANT_CITY', 'Phnom Penh'),
-        'currency' => env('BAKONG_CURRENCY', '840'),
-        'qr_mode' => env('BAKONG_QR_MODE', 'local'),
-        'qr_ttl_minutes' => (int) env('BAKONG_QR_TTL_MINUTES', 60),
+    'google' => [
+    'client_id' => env('GOOGLE_CLIENT_ID'),
+    'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+
+    'redirect' => env('GOOGLE_REDIRECT_URI')
+        ?: rtrim(env('APP_URL', 'http://localhost'), '/')
+        . '/api/auth/google/callback',
+
+    'frontend_callback' => env(
+        'GOOGLE_FRONTEND_REDIRECT_URI',
+        'http://localhost:5173/auth/google/callback'
+    ),
+],
+
+    'payway' => [
+        'env' => env('PAYWAY_ENV', 'sandbox'),
+        'base_url' => env('PAYWAY_BASE_URL', env('PAYWAY_ENV', 'sandbox') === 'production'
+            ? 'https://checkout.payway.com.kh'
+            : 'https://checkout-sandbox.payway.com.kh'),
+        'merchant_id' => env('PAYWAY_MERCHANT_ID'),
+        'api_key' => env('PAYWAY_API_KEY'),
+        'callback_secret' => env('PAYWAY_CALLBACK_SECRET'),
+        'purchase_url' => env('PAYWAY_PURCHASE_URL'),
+        'check_url' => env('PAYWAY_CHECK_URL'),
+        'frontend_return_url' => env('PAYWAY_FRONTEND_RETURN_URL', env('PAYWAY_RETURN_URL', env('APP_URL', 'http://localhost'))),
+        'cancel_url' => env('PAYWAY_CANCEL_URL', env('PAYWAY_FRONTEND_RETURN_URL', env('PAYWAY_RETURN_URL', env('APP_URL', 'http://localhost')))),
+        'callback_url' => env('PAYWAY_CALLBACK_URL'),
+        'currency' => env('PAYWAY_CURRENCY', 'USD'),
+        'payment_option' => env('PAYWAY_PAYMENT_OPTION', 'abapay_khqr_deeplink'),
+        'lifetime_minutes' => (int) env('PAYWAY_LIFETIME_MINUTES', 60),
     ],
 
 ];

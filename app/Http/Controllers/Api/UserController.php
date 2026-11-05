@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
@@ -45,6 +46,52 @@ class UserController extends Controller
             'enrollments.course',
             'lessonProgress.lesson',
             'payments.course',
+            'quizAttempts.quiz.lesson.course',
         ]));
+    }
+
+    public function update(Request $request, User $user)
+    {
+        $validated = $request->validate([
+            'name' => ['sometimes', 'string', 'max:255'],
+            'email' => [
+                'sometimes',
+                'string',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($user->id),
+            ],
+            'password' => ['sometimes', 'nullable', 'string', 'min:8'],
+            'role' => ['sometimes', 'string', 'in:student,admin'],
+        ]);
+
+        if (array_key_exists('password', $validated)) {
+            $validated['password'] = $validated['password'] !== null
+                ? Hash::make($validated['password'])
+                : $user->password;
+
+            if ($request->input('password') === null) {
+                unset($validated['password']);
+            }
+        }
+
+        $user->update($validated);
+
+        return response()->json($user->fresh());
+    }
+
+    public function destroy(Request $request, User $user)
+    {
+        if ((int) $request->user()->id === (int) $user->id) {
+            return response()->json([
+                'message' => 'You cannot delete your own account.',
+            ], 422);
+        }
+
+        $user->delete();
+
+        return response()->json([
+            'message' => 'User deleted successfully.',
+        ]);
     }
 }

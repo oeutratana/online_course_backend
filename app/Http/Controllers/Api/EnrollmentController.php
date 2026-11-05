@@ -24,4 +24,25 @@ class EnrollmentController extends Controller
     {
         return response()->json($enrollment->load(['user', 'course']));
     }
+
+    public function update(Request $request, Enrollment $enrollment)
+    {
+        $validated = $request->validate([
+            'status' => ['sometimes', 'string', 'in:active,completed,cancelled'],
+            'enrolled_at' => ['sometimes', 'nullable', 'date'],
+        ]);
+
+        $enrollment->update($validated);
+
+        return response()->json($enrollment->fresh()->load(['user', 'course']));
+    }
+
+    public function destroy(Enrollment $enrollment)
+    {
+        $enrollment->delete();
+
+        return response()->json([
+            'message' => 'Enrollment deleted successfully.',
+        ]);
+    }
 }

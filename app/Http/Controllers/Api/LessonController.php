@@ -25,11 +25,26 @@ class LessonController extends Controller
     {
         $lesson->load([
             'course',
-            'progress.user',
             'quizzes.questions',
         ]);
 
         $user = $request->user() ?: auth('sanctum')->user();
+
+        if (! $lesson->is_preview && ! $this->hasCourseAccess($lesson, $user)) {
+            abort(403, 'You must pay for this course to view this lesson.');
+        }
+
+        $manager = $user?->canManageCourse($lesson->course) ?? false;
+
+        if ($manager) {
+            $lesson->load('progress.user');
+        } else {
+            foreach ($lesson->quizzes as $quiz) {
+                foreach ($quiz->questions as $question) {
+                    $question->makeHidden('correct_option');
+                }
+            }
+        }
 
         return response()->json($this->serializeLesson($lesson, $user));
     }

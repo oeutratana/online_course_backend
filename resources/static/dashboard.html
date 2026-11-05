@@ -1,156 +1,82 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Dashboard - Online Course</title>
-        <link rel="stylesheet" href="/css/app.css">
-        <script src="/js/app.js" defer></script>
-    </head>
-    <body>
-        <main class="app-shell">
-            <section class="topbar">
-                <div>
-                    <p class="eyebrow">Online Course</p>
-                    <h1>Protected learning dashboard</h1>
-                </div>
-                <div class="session-pill" id="sessionStatus">Checking</div>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Admin Dashboard - Online Course</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/app.css">
+    <script src="/js/app.js" defer></script>
+</head>
+<body class="admin-dashboard">
+    <aside class="admin-sidebar">
+        <a class="brand" href="/admin/dashboard" aria-label="Online Course dashboard">
+            <span class="brand-mark">◈</span><span><strong>Online Course</strong><small>Learn · Grow · Succeed</small></span>
+        </a>
+        <nav class="admin-nav" aria-label="Admin navigation">
+            <a class="active" href="#overview"><span>⌂</span>Dashboard</a>
+                <a href="#courses"><span>▣</span>Courses</a>
+            <a href="#categories"><span>▤</span>Categories</a>
+            <a href="#courses"><span>▧</span>Lessons</a>
+            <a href="#courses"><span>◩</span>Quizzes</a>
+            <a href="#courses"><span>▦</span>Questions</a>
+            <a href="#users"><span>♧</span>Users</a>
+            <a href="#enrollments"><span>▥</span>Enrollments</a>
+            <a href="#payments"><span>▱</span>Payments</a>
+            <a href="#overview"><span>◷</span>Lesson Progress</a>
+        </nav>
+        <div class="nav-divider"></div>
+        <p class="nav-caption">ADMIN</p>
+        <nav class="admin-nav admin-nav-bottom" aria-label="Account navigation">
+            <a href="#overview"><span>⚙</span>Settings</a>
+            <button id="logoutButton" type="button" hidden><span>↪</span>Logout</button>
+        </nav>
+        <div class="sidebar-promo"><span class="promo-cap">◈</span><strong>Better Education<br>for a Brighter Future</strong><p>Online learning makes knowledge accessible to everyone.</p></div>
+    </aside>
+
+    <div class="admin-main">
+        <header class="admin-topbar">
+            <label class="dashboard-search"><span>⌕</span><input type="search" placeholder="Search courses, users, etc…" aria-label="Search dashboard"></label>
+            <div class="topbar-right"><button class="notification-button" type="button" aria-label="Notifications">♧<i>3</i></button><span class="admin-avatar">A</span><div class="admin-identity"><strong id="adminName">Admin</strong><small>Administrator</small></div><span class="identity-chevron">⌄</span><span class="session-pill" id="sessionStatus">Checking</span><button class="secondary-action dashboard-refresh" id="refreshButton" type="button">Refresh</button></div>
+        </header>
+
+        <main class="dashboard-content" id="overview">
+            <section class="dashboard-welcome">
+                <div><h1>Good morning, Admin!</h1><p>Here's what's happening with your online course platform today.</p></div>
+                <div class="today-card"><span>▦</span><div><strong id="todayDate">November 2, 2026</strong><small>Monday</small></div></div>
             </section>
-
-            <section class="data-panel">
-                <div class="panel-header">
-                    <div>
-                        <p class="eyebrow">API</p>
-                        <h2>Sanctum protected data</h2>
-                    </div>
-                    <div class="panel-actions">
-                        <button class="secondary-action" id="refreshButton" type="button">Refresh</button>
-                        <button class="secondary-action" id="logoutButton" type="button" hidden>Logout</button>
-                    </div>
-                </div>
-
-                <div class="stats-grid">
-                    <article>
-                        <span>Courses</span>
-                        <strong id="courseCount">0</strong>
-                    </article>
-                    <article>
-                        <span>Users</span>
-                        <strong id="userCount">0</strong>
-                    </article>
-                    <article>
-                        <span>Enrollments</span>
-                        <strong id="enrollmentCount">0</strong>
-                    </article>
-                    <article>
-                        <span>Payments</span>
-                        <strong id="paymentCount">0</strong>
-                    </article>
-                </div>
-
-                <div class="profile-strip" id="profileStrip">
-                    Protected by web middleware and Sanctum API middleware.
-                </div>
-
-                <form id="addUserForm" class="add-user-form">
-                    <div class="form-title">
-                        <p class="eyebrow">Users</p>
-                        <h3>Add user</h3>
-                    </div>
-                    <label>
-                        Name
-                        <input name="name" type="text" autocomplete="off" required>
-                    </label>
-                    <label>
-                        Email
-                        <input name="email" type="email" autocomplete="off" required>
-                    </label>
-                    <label>
-                        Password
-                        <input name="password" type="password" minlength="8" required>
-                    </label>
-                    <label>
-                        Role
-                        <select name="role">
-                            <option value="student">Student</option>
-                            <option value="instructor">Instructor</option>
-                            <option value="admin">Admin</option>
-                        </select>
-                    </label>
-                    <button type="submit">Add user</button>
-                </form>
-
-                <form id="categoryForm" class="category-form">
-                    <div class="form-title">
-                        <p class="eyebrow">Categories</p>
-                        <h3 id="categoryFormTitle">Add category</h3>
-                    </div>
-                    <input name="id" type="hidden">
-                    <label>
-                        Name
-                        <input name="name" type="text" autocomplete="off" required>
-                    </label>
-                    <label>
-                        Slug
-                        <input name="slug" type="text" autocomplete="off" placeholder="Auto-generated if empty">
-                    </label>
-                    <label class="wide-field">
-                        Description
-                        <textarea name="description" rows="2"></textarea>
-                    </label>
-                    <div class="form-actions">
-                        <button type="submit" id="categorySubmitButton">Add category</button>
-                        <button class="secondary-action" id="cancelCategoryEditButton" type="button" hidden>Cancel edit</button>
-                    </div>
-                </form>
-
-                <form id="courseForm" class="course-form">
-                    <div class="form-title">
-                        <p class="eyebrow">Course</p>
-                        <h3 id="courseFormTitle">Add course</h3>
-                    </div>
-                    <input name="id" type="hidden">
-                    <label>
-                        Title
-                        <input name="title" type="text" autocomplete="off" required>
-                    </label>
-                    <label>
-                        Category
-                        <select name="category_id" id="categorySelect">
-                            <option value="">Uncategorized</option>
-                        </select>
-                    </label>
-                    <label>
-                        Price
-                        <input name="price" type="number" min="0" step="0.01" value="0" required>
-                    </label>
-                    <label>
-                        Thumbnail URL
-                        <input name="thumbnail" type="url" autocomplete="off">
-                    </label>
-                    <label>
-                        Video URL
-                        <input name="video_url" type="url" autocomplete="off">
-                    </label>
-                    <label class="checkbox-field">
-                        <input name="is_published" type="checkbox">
-                        Published
-                    </label>
-                    <label class="wide-field">
-                        Description
-                        <textarea name="description" rows="3"></textarea>
-                    </label>
-                    <div class="form-actions">
-                        <button type="submit" id="courseSubmitButton">Add course</button>
-                        <button class="secondary-action" id="cancelEditButton" type="button" hidden>Cancel edit</button>
-                    </div>
-                </form>
-
-                <p class="message" id="authMessage"></p>
-                <div class="user-list" id="userList"></div>
-                <div class="category-list" id="categoryList"></div>
-                <div class="course-list" id="courseList"></div>
+            <div class="stats-grid dashboard-stat-grid">
+                <article class="stat-card stat-blue"><span class="stat-icon">▣</span><div><span>Total Courses</span><strong id="statCourses">0</strong><small id="statCoursesHint">&nbsp;</small></div></article>
+                <article class="stat-card stat-green"><span class="stat-icon">♧</span><div><span>Total Students</span><strong id="statUsers">0</strong><small id="statUsersHint">&nbsp;</small></div></article>
+                <article class="stat-card stat-orange"><span class="stat-icon">▤</span><div><span>Total Enrollments</span><strong id="statEnrollments">0</strong><small id="statEnrollmentsHint">&nbsp;</small></div></article>
+                <article class="stat-card stat-purple"><span class="stat-icon">▱</span><div><span>Total Revenue</span><strong id="statPayments">$0</strong><small id="statPaymentsHint">&nbsp;</small></div></article>
+            </div>
+            <div class="dashboard-metrics" aria-label="Additional platform statistics">
+                <span>Categories <strong id="statCategories">0</strong><small id="statCategoriesHint"></small></span><span>Lessons <strong id="statLessons">0</strong><small id="statLessonsHint"></small></span><span>Quizzes <strong id="statQuizzes">0</strong><small id="statQuizzesHint"></small></span><span>Questions <strong id="statQuestions">0</strong><small id="statQuestionsHint"></small></span>
+            </div>
+            <section class="visual-row">
+                <article class="dashboard-card enrollment-chart-card"><div class="card-heading"><div><h2>Enrollment Overview</h2><p>Platform activity and growth</p></div><div class="chart-periods" role="group" aria-label="Chart range"><button type="button">7D</button><button class="selected" type="button">30D</button><button type="button">3M</button><button type="button">1Y</button></div></div>
+                    <div class="chart-empty"><div class="chart-y-labels"><span>50</span><span>40</span><span>30</span><span>20</span><span>10</span><span>0</span></div><div class="chart-plot"><div class="chart-gridlines"><i></i><i></i><i></i><i></i><i></i><i></i></div><svg viewBox="0 0 620 190" preserveAspectRatio="none" role="img" aria-label="Enrollment overview chart"><defs><linearGradient id="chartFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#3678f6" stop-opacity=".22"/><stop offset="1" stop-color="#3678f6" stop-opacity="0"/></linearGradient></defs><path class="chart-area" d="M0 158 C25 150 27 118 55 132 S90 151 113 139 S145 103 171 125 S206 151 230 137 S262 107 287 112 S317 91 341 99 S377 127 404 104 S435 73 461 87 S490 104 516 77 S551 64 573 40 S600 52 620 18 L620 190 L0 190Z"/><path class="chart-line" d="M0 158 C25 150 27 118 55 132 S90 151 113 139 S145 103 171 125 S206 151 230 137 S262 107 287 112 S317 91 341 99 S377 127 404 104 S435 73 461 87 S490 104 516 77 S551 64 573 40 S600 52 620 18"/><g class="chart-dots"><circle cx="55" cy="132" r="3"/><circle cx="171" cy="125" r="3"/><circle cx="287" cy="112" r="3"/><circle cx="404" cy="104" r="3"/><circle cx="516" cy="77" r="3"/><circle cx="620" cy="18" r="3"/></g></svg><div class="chart-x-labels"><span>Apr 1</span><span>Apr 5</span><span>Apr 10</span><span>Apr 15</span><span>Apr 20</span><span>Apr 25</span><span>Apr 30</span></div></div></div>
+                </article>
+                <article class="dashboard-card category-chart-card"><div class="card-heading"><div><h2>Courses by Category</h2><p>Course distribution</p></div></div><div class="category-chart-body"><div class="donut-chart"><div><strong id="categoryCourseTotal">24</strong><span>Total Courses</span></div></div><ul class="category-legend"><li><i class="legend-blue"></i>Programming <span>8 (33%)</span></li><li><i class="legend-purple"></i>Design <span>5 (21%)</span></li><li><i class="legend-green"></i>Business <span>4 (17%)</span></li><li><i class="legend-orange"></i>Marketing <span>3 (13%)</span></li><li><i class="legend-gray"></i>Other <span>4 (17%)</span></li></ul></div></article>
             </section>
+            <section class="dashboard-columns">
+                <div class="dashboard-primary">
+                    <section class="dashboard-section dashboard-section-primary" id="courses"><div class="section-title"><div><h2>Latest Courses</h2><p>Recently added to your platform</p></div><a href="#courses">View all →</a></div><div class="course-list" id="courseList"></div></section>
+                    <section class="dashboard-section dashboard-section-primary" id="enrollments"><div class="section-title"><div><h2>Recent Enrollments</h2><p>Latest student sign-ups</p></div><a href="#enrollments">View all →</a></div><div id="recentEnrollmentsList"></div></section>
+                    <section class="dashboard-section management-section dashboard-management-tools" id="users"><div class="panel-header"><div><p class="eyebrow">Management</p><h3>Users</h3></div></div><form id="addUserForm" class="add-user-form compact-form"><div class="form-title"><p class="eyebrow">Quick Add</p><h4>Add user</h4></div><label>Name<input name="name" type="text" autocomplete="off" required></label><label>Email<input name="email" type="email" autocomplete="off" required></label><label>Password<input name="password" type="password" minlength="8" required></label><label>Role<select name="role"><option value="student">Student</option><option value="instructor">Instructor</option><option value="admin">Admin</option></select></label><button type="submit">Add user</button></form><div class="list-wrapper"><h4 class="list-heading">Recent Users</h4><div class="user-list" id="userList"></div></div></section>
+                    <section class="dashboard-section management-section dashboard-management-tools" id="categories"><div class="panel-header"><div><p class="eyebrow">Management</p><h3>Categories</h3></div></div><form id="categoryForm" class="category-form compact-form"><div class="form-title"><p class="eyebrow">Quick Add/Edit</p><h4 id="categoryFormTitle">Add category</h4></div><input name="id" type="hidden"><label>Name<input name="name" type="text" autocomplete="off" required></label><label>Slug<input name="slug" type="text" autocomplete="off" placeholder="Auto-generated if empty"></label><label class="wide-field">Description<textarea name="description" rows="2"></textarea></label><div class="form-actions"><button type="submit" id="categorySubmitButton">Add category</button><button class="secondary-action" id="cancelCategoryEditButton" type="button" hidden>Cancel edit</button></div></form><div class="list-wrapper"><h4 class="list-heading">All Categories</h4><div class="category-list" id="categoryList"></div></div></section>
+                </div>
+                <aside class="dashboard-secondary">
+                    <section class="dashboard-section activity-section" id="activity"><div class="section-title"><div><h2>Recent Activity</h2><p>What's happening right now</p></div><a href="#activity">View all →</a></div><div class="recent-list activity-list" id="recentActivityList"></div></section>
+                    <section class="dashboard-section quick-actions"><div class="section-title"><div><h2>Quick Actions</h2><p>Common admin tasks</p></div></div><div class="action-grid"><a href="#courses"><span>＋</span><strong>Add New Course</strong><small>Create a new course</small></a><a href="#users"><span>♧</span><strong>Manage Users</strong><small>View and manage users</small></a><a href="#categories"><span>▦</span><strong>Manage Categories</strong><small>Organize course categories</small></a><a href="#payments"><span>▱</span><strong>View Payments</strong><small>Check payment records</small></a></div></section>
+                </aside>
+            </section>
+            <section class="dashboard-section analytics-panel" id="analyticsPanel" hidden><div class="panel-header"><div><p class="eyebrow">Analytics</p><h2 id="analyticsTitle">Course performance</h2></div><div class="panel-actions"><button class="secondary-action" id="closeAnalyticsButton" type="button">Close</button></div></div><div class="stats-grid" id="analyticsStats"></div><div class="analytics-body"><div class="analytics-chart"><p class="eyebrow">Last 30 days</p><div id="analyticsTrend"></div></div><div class="analytics-side"><p class="eyebrow">Rating distribution</p><div id="analyticsRating"></div><div id="analyticsDropOff"></div></div></div></section>
+            <p class="profile-strip" id="profileStrip">Protected by web middleware and Sanctum API middleware.</p><p class="message" id="authMessage" role="status"></p>
         </main>
-    </body>
+    </div>
+</body>
 </html>

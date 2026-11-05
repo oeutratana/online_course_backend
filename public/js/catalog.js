@@ -52,6 +52,37 @@ async function getJson(path) {
     return data;
 }
 
+/**
+ * Follows a Laravel paginated JSON endpoint and returns every row.
+ *
+ * Laravel 10 sends the pager fields at the root of the payload
+ * (`data`, `last_page`, ...); newer versions nest them under `meta`.
+ * A plain array response is treated as a single page.
+ */
+async function fetchAllPages(url) {
+    const first = await getJson(url);
+
+    if (!first || Array.isArray(first)) {
+        return Array.isArray(first) ? first : [];
+    }
+
+    const rows = [...(first.data ?? [])];
+    const lastPage = first.last_page ?? first.meta?.last_page ?? 1;
+
+    for (let page = 2; page <= lastPage; page += 1) {
+        const separator = url.includes('?') ? '&' : '?';
+        const next = await getJson(`${url}${separator}page=${page}`);
+
+        if (!Array.isArray(next?.data)) {
+            break;
+        }
+
+        rows.push(...next.data);
+    }
+
+    return rows;
+}
+
 function checkedValues(name) {
     return [...document.querySelectorAll(`input[name="${name}"]:checked`)].map((input) => input.value);
 }
@@ -161,8 +192,11 @@ function showAlert(message) {
 
 async function loadCatalog() {
     try {
+        // The courses endpoint is paginated: walk every page so the catalog
+        // keeps showing the full list. `data` holds the rows, the root level
+        // fields hold the paging info.
         const [courses, categories] = await Promise.all([
-            getJson('/api/courses?published=1'),
+            fetchAllPages('/api/courses?per_page=60'),
             getJson('/api/categories'),
         ]);
 

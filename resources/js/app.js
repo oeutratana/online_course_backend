@@ -110,9 +110,41 @@ function renderUsers(users) {
     `).join('');
 }
 
+/**
+ * Reads every row of a paginated Laravel endpoint.
+ *
+ * The courses endpoint is paginated, so a single request would only show the
+ * first page of courses. Laravel 10 returns the pager fields at the root of the
+ * payload; newer versions nest them under `meta`.
+ */
+async function fetchAllRows(path) {
+    const { data: first } = await window.axios.get(path);
+
+    if (!first || Array.isArray(first)) {
+        return Array.isArray(first) ? first : [];
+    }
+
+    const rows = [...(first.data ?? [])];
+    const lastPage = first.last_page ?? first.meta?.last_page ?? 1;
+
+    for (let page = 2; page <= lastPage; page += 1) {
+        const separator = path.includes('?') ? '&' : '?';
+        const { data: next } = await window.axios.get(`${path}${separator}page=${page}`);
+
+        if (!Array.isArray(next?.data)) {
+            break;
+        }
+
+        rows.push(...next.data);
+    }
+
+    return rows;
+}
+
 async function loadPublicCourses() {
-    const { data } = await window.axios.get('/api/courses');
-    renderCourses(data);
+    // The courses endpoint is paginated, so `data` is the page payload and the
+    // rows live in `data.data`.
+    renderCourses(await fetchAllRows('/api/courses'));
 }
 
 async function loadProtectedData() {

@@ -63,6 +63,37 @@ async function refreshCsrfCookie() {
     });
 }
 
+/**
+ * Reads every row of a paginated Laravel endpoint.
+ *
+ * `/api/my/courses` is paginated, so a single page would hide courses from the
+ * dashboard. Laravel 10 returns the pager fields at the root of the payload;
+ * newer versions nest them under `meta`.
+ */
+async function fetchAllRows(path) {
+    const first = await request(path);
+
+    if (!first || Array.isArray(first)) {
+        return Array.isArray(first) ? first : [];
+    }
+
+    const rows = [...(first.data ?? [])];
+    const lastPage = first.last_page ?? first.meta?.last_page ?? 1;
+
+    for (let page = 2; page <= lastPage; page += 1) {
+        const separator = path.includes('?') ? '&' : '?';
+        const next = await request(`${path}${separator}page=${page}`);
+
+        if (!Array.isArray(next?.data)) {
+            break;
+        }
+
+        rows.push(...next.data);
+    }
+
+    return rows;
+}
+
 async function request(path, options = {}) {
     const method = options.method || 'GET';
     const headers = {
@@ -109,15 +140,18 @@ function validationMessage(error) {
 }
 
 function renderCourses(courses) {
-    elements.courseCount.textContent = courses.length;
-    state.courses = courses;
+    // Course endpoints are paginated: accept both a bare array and a page payload.
+    const rows = Array.isArray(courses) ? courses : (courses?.data ?? []);
 
-    if (!courses.length) {
+    elements.courseCount.textContent = rows.length;
+    state.courses = rows;
+
+    if (!rows.length) {
         elements.courseList.innerHTML = '<p class="empty-state">No courses found yet.</p>';
         return;
     }
 
-    elements.courseList.innerHTML = courses.map((course) => {
+    elements.courseList.innerHTML = rows.map((course) => {
         const canManage = state.user?.role === 'admin' || course.user_id === state.user?.id;
         const hasAccess = Boolean(course.has_access);
         const isEnrolled = Boolean(course.is_enrolled);
@@ -125,7 +159,7 @@ function renderCourses(courses) {
         const priceLabel = isFree ? 'Free' : `$${Number(course.price || 0).toFixed(2)}`;
         const purchaseButton = isEnrolled || (hasAccess && !isFree)
             ? `<span class="access-pill">${isFree ? 'Enrolled' : 'Purchased'}</span>`
-            : `<button class="secondary-action" type="button" data-course-pay="${course.id}">${isFree ? 'Enroll for free' : 'Pay with Bakong'}</button>`;
+            : `<button class="secondary-action" type="button" data-course-pay="${course.id}">${isFree ? 'Enroll for free' : 'Pay with PayWay'}</button>`;
 
         return `
             <article class="course-item">
@@ -162,13 +196,28 @@ function showCoursePayment(courseId, payment) {
     }
 
     slot.hidden = false;
+
+    const qrImage = payment.qr_url
+        ? `<img src="${escapeHtml(payment.qr_url)}" alt="PayWay QR for ${escapeHtml(payment.course?.title || 'course')}">`
+        : '';
+
+    const hostedButton = (!payment.qr_url && payment.checkout_url && payment.checkout_form)
+        ? `<button class="secondary-action" type="button" data-payway-checkout="${courseId}">Pay on PayWay</button>`
+        : '';
+
+    const deeplinkButton = (!payment.qr_url && payment.abapay_deeplink)
+        ? `<button class="secondary-action" type="button" data-payway-deeplink="${courseId}">Open in ABA Mobile</button>`
+        : '';
+
     slot.innerHTML = `
         <div>
-            <p class="eyebrow">Bakong payment</p>
-            <h4>Scan KHQR for ${escapeHtml(payment.course?.title || 'this course')}</h4>
+            <p class="eyebrow">PayWay payment</p>
+            <h4>${payment.qr_url ? 'Scan the QR' : (payment.abapay_deeplink ? 'Pay with ABA Mobile' : 'Complete your payment')} for ${escapeHtml(payment.course?.title || 'this course')}</h4>
             <p>Amount: $${Number(payment.amount || 0).toFixed(2)}</p>
         </div>
-        ${payment.qr_url ? `<img src="${escapeHtml(payment.qr_url)}" alt="Bakong KHQR for ${escapeHtml(payment.course?.title || 'course')}">` : ''}
+        ${qrImage}
+        ${deeplinkButton}
+        ${hostedButton}
         <div class="form-actions">
             <button type="button" data-payment-check="${courseId}">I have paid</button>
             <button class="secondary-action" type="button" data-payment-close="${courseId}">Close</button>
@@ -186,6 +235,40 @@ function closeCoursePayment(courseId) {
         slot.hidden = true;
         slot.innerHTML = '';
     }
+}
+
+function openPayWayDeeplink(deeplink) {
+    const anchor = document.createElement('a');
+    anchor.href = deeplink;
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+}
+
+function openPayWayCheckout(checkoutUrl, formData) {
+    if (typeof formData !== 'object' || !formData) {
+        window.open(checkoutUrl, '_blank', 'noopener');
+        return;
+    }
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = checkoutUrl;
+    form.target = '_blank';
+    form.style.display = 'none';
+
+    Object.entries(formData).forEach(([key, value]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = String(value);
+        form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
 }
 
 function renderCategories(categories) {
@@ -245,7 +328,7 @@ function editCourse(courseId) {
 async function refreshDashboard() {
     const [user, courses, categories] = await Promise.all([
         request('/api/user'),
-        request('/api/my/courses'),
+        fetchAllRows('/api/my/courses'),
         request('/api/categories'),
     ]);
 
@@ -318,9 +401,31 @@ elements.courseList.addEventListener('click', async (event) => {
     const payButton = event.target.closest('[data-course-pay]');
     const checkButton = event.target.closest('[data-payment-check]');
     const closeButton = event.target.closest('[data-payment-close]');
+    const checkoutButton = event.target.closest('[data-payway-checkout]');
+    const deeplinkButton = event.target.closest('[data-payway-deeplink]');
 
     if (editButton) {
         editCourse(editButton.dataset.courseEdit);
+        return;
+    }
+
+    if (deeplinkButton) {
+        const payment = state.activePayments[deeplinkButton.dataset.paywayDeeplink];
+
+        if (payment?.abapay_deeplink) {
+            openPayWayDeeplink(payment.abapay_deeplink);
+        }
+
+        return;
+    }
+
+    if (checkoutButton) {
+        const payment = state.activePayments[checkoutButton.dataset.paywayCheckout];
+
+        if (payment?.checkout_url && payment.checkout_form) {
+            openPayWayCheckout(payment.checkout_url, payment.checkout_form);
+        }
+
         return;
     }
 
@@ -340,7 +445,7 @@ elements.courseList.addEventListener('click', async (event) => {
             const checkedPayment = response.payment || response;
 
             if (checkedPayment.status !== 'paid') {
-                setMessage(response.message || 'Bakong has not confirmed this payment yet. Try again in a few seconds.', 'warning');
+                setMessage(response.message || 'PayWay has not confirmed this payment yet. Try again in a few seconds.', 'warning');
                 return;
             }
 
@@ -349,7 +454,7 @@ elements.courseList.addEventListener('click', async (event) => {
             await refreshDashboard();
         } catch (error) {
             if (error.status === 202) {
-                setMessage('Bakong has not confirmed this payment yet. Try again in a few seconds.', 'warning');
+                setMessage('PayWay has not confirmed this payment yet. Try again in a few seconds.', 'warning');
                 return;
             }
 
@@ -372,7 +477,7 @@ elements.courseList.addEventListener('click', async (event) => {
                 method: 'POST',
                 body: JSON.stringify({
                     course_id: payButton.dataset.coursePay,
-                    method: 'bakong',
+                    method: 'payway',
                 }),
             });
 
@@ -383,7 +488,7 @@ elements.courseList.addEventListener('click', async (event) => {
             }
 
             showCoursePayment(payButton.dataset.coursePay, payment);
-            setMessage('Scan the Bakong KHQR to pay.', 'info');
+            setMessage('Scan the PayWay QR to pay.', 'info');
         } catch (error) {
             setMessage(validationMessage(error), 'error');
         } finally {

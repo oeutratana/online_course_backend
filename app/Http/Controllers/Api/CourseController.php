@@ -4,82 +4,123 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Course;
+use App\Models\Enrollment;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class CourseController extends Controller
 {
+    private const DEFAULT_PER_PAGE = 12;
+
+    private const MAX_PER_PAGE = 60;
+
     public function index(Request $request)
     {
-        $courses = Course::with(['instructor', 'category'])
-            ->when($request->user_id, fn ($query, $userId) => $query->where('user_id', $userId))
-            ->when($request->category_id, fn ($query, $categoryId) => $query->where('category_id', $categoryId))
-            ->when($request->search, function ($query, $search) {
-                $query->where(function ($query) use ($search) {
-                    $query->where('title', 'like', "%{$search}%")
-                        ->orWhere('description', 'like', "%{$search}%");
-                });
-            })
-            ->when($request->price === 'free', fn ($query) => $query->where('price', 0))
-            ->when($request->price === 'paid', fn ($query) => $query->where('price', '>', 0))
-            ->when($request->boolean('published'), fn ($query) => $query->where('is_published', true))
-            ->when(
-                $request->sort === 'price_low',
-                fn ($query) => $query->orderBy('price'),
-                fn ($query) => $query->when(
-                    $request->sort === 'newest',
-                    fn ($query) => $query->latest(),
-                    fn ($query) => $query->latest()
-                )
-            )
-            ->get();
+        $filters = $this->validatedFilters($request);
+
+        $query = Course::query()
+            ->published()
+            ->with(['instructor', 'category'])
+            ->withCount(['reviews'])
+            ->withAvg('reviews', 'rating')
+            ->search($filters['search'])
+            ->forCategory($filters['category_id'])
+            ->forInstructor($filters['instructor_id'])
+            ->priceBetween($filters['min_price'], $filters['max_price'])
+            ->ratingAtLeast($filters['rating']);
+
+        if ($filters['price_type'] === 'free') {
+            $query->where('price', 0);
+        }
+
+        if ($filters['price_type'] === 'paid') {
+            $query->where('price', '>', 0);
+        }
+
+        $this->applySorting($query, $filters);
 
         $user = $request->user() ?: auth('sanctum')->user();
 
-        return response()->json($this->serializeCourses($courses, $user));
+        $courses = $query
+            ->paginate($filters['per_page'])
+            ->withQueryString()
+            ->through(fn (Course $course) => $this->serializeCourse($course, $user));
+
+        return response()->json($courses);
     }
 
     public function myIndex(Request $request)
     {
-        $courses = Course::with(['instructor', 'category'])
-            ->when($request->user_id, fn ($query, $userId) => $query->where('user_id', $userId))
-            ->when($request->category_id, fn ($query, $categoryId) => $query->where('category_id', $categoryId))
-            ->when($request->search, function ($query, $search) {
-                $query->where(function ($query) use ($search) {
-                    $query->where('title', 'like', "%{$search}%")
-                        ->orWhere('description', 'like', "%{$search}%");
-                });
-            })
-            ->when($request->price === 'free', fn ($query) => $query->where('price', 0))
-            ->when($request->price === 'paid', fn ($query) => $query->where('price', '>', 0))
-            ->when($request->boolean('published'), fn ($query) => $query->where('is_published', true))
-            ->when(
-                $request->sort === 'price_low',
-                fn ($query) => $query->orderBy('price'),
-                fn ($query) => $query->when(
-                    $request->sort === 'newest',
-                    fn ($query) => $query->latest(),
-                    fn ($query) => $query->latest()
-                )
-            )
-            ->get();
+        $user = $request->user();
+        $filters = $this->validatedFilters($request);
 
-        return response()->json($this->serializeCourses($courses, $request->user()));
+        // Only return courses where the user has an active enrollment (paid)
+        $enrolledCourseIds = Enrollment::where('user_id', $user->id)
+            ->where('status', 'active')
+            ->pluck('course_id');
+
+        $query = Course::query()
+            ->with(['instructor', 'category'])
+            ->withCount(['reviews'])
+            ->withAvg('reviews', 'rating')
+            ->whereIn('id', $enrolledCourseIds)
+            ->search($filters['search'])
+            ->forCategory($filters['category_id'])
+            ->priceBetween($filters['min_price'], $filters['max_price'])
+            ->ratingAtLeast($filters['rating']);
+
+        if ($filters['price_type'] === 'free') {
+            $query->where('price', 0);
+        }
+
+        if ($filters['price_type'] === 'paid') {
+            $query->where('price', '>', 0);
+        }
+
+        $this->applySorting($query, $filters);
+
+        $courses = $query
+            ->paginate($filters['per_page'])
+            ->withQueryString()
+            ->through(fn (Course $course) => $this->serializeCourse($course, $user));
+
+        return response()->json($courses);
     }
 
     public function show(Request $request, Course $course)
     {
+        $user = $request->user() ?: auth('sanctum')->user();
+
+        // Draft courses are private: only an admin may preview them before
+        // they are published.
+        if (! $course->is_published && ! $this->canViewDraft($user, $course)) {
+            abort(404);
+        }
+
+        $manager = $this->canManageCourse($user, $course);
+
         $course->load([
             'instructor',
             'category',
             'lessons.quizzes.questions',
-            'enrollments.user',
-            'payments.user',
         ]);
 
-        $user = $request->user() ?: auth('sanctum')->user();
+        if ($manager) {
+            $course->load(['enrollments.user', 'payments.user']);
+        }
+
+        $course->loadCount(['reviews', 'certificates']);
+        $course->loadAvg('reviews', 'rating');
+
+        if (! $manager) {
+            $this->hideQuizAnswerKeys($course);
+        }
+
         $courseData = $this->serializeCourse($course, $user);
 
         if (! $courseData['has_access']) {
@@ -118,13 +159,15 @@ class CourseController extends Controller
 
         $validated = $this->validatedCourseData($request);
 
-        $course->update([
+        $attributes = [
             ...$validated,
             'slug' => $this->uniqueSlug($validated['title'], $course),
             'is_published' => $request->boolean('is_published'),
-        ]);
+        ];
 
-        return response()->json($course->load(['instructor', 'category']));
+        $course->update($attributes);
+
+        return response()->json($course->fresh()->load(['instructor', 'category']));
     }
 
     public function destroy(Request $request, Course $course)
@@ -138,9 +181,91 @@ class CourseController extends Controller
         ]);
     }
 
-    private function validatedCourseData(Request $request): array
+    /**
+     * Validate and normalise every supported query parameter.
+     *
+     * @return array{search:?string, category_id:?int, instructor_id:?int, min_price:?float,
+     *               max_price:?float, rating:?float, sort_by:string, sort_order:string,
+     *               per_page:int, price_type:?string}
+     */
+    private function validatedFilters(Request $request): array
     {
         $validated = $request->validate([
+            'search' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'category_id' => ['sometimes', 'nullable', 'integer', 'exists:categories,id'],
+            'instructor_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
+            // Legacy alias kept for existing clients.
+            'user_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
+            'min_price' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:99999999.99'],
+            'max_price' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:99999999.99'],
+            'rating' => ['sometimes', 'nullable', 'numeric', 'min:1', 'max:5'],
+            'sort_by' => ['sometimes', 'nullable', 'string', Rule::in(Course::SORTABLE_COLUMNS)],
+            'sort_order' => ['sometimes', 'nullable', Rule::in(['asc', 'desc'])],
+            // Legacy sort aliases: newest, price_low, price_high.
+            'sort' => ['sometimes', 'nullable', Rule::in(['newest', 'price_low', 'price_high'])],
+            'price' => ['sometimes', 'nullable', 'string', Rule::in(['free', 'paid'])],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:'.self::MAX_PER_PAGE],
+            'page' => ['sometimes', 'integer', 'min:1'],
+        ]);
+
+        $minPrice = isset($validated['min_price']) ? (float) $validated['min_price'] : null;
+        $maxPrice = isset($validated['max_price']) ? (float) $validated['max_price'] : null;
+
+        if ($minPrice !== null && $maxPrice !== null && $minPrice > $maxPrice) {
+            throw ValidationException::withMessages([
+                'max_price' => ['The max_price must be greater than or equal to the min_price.'],
+            ]);
+        }
+
+        [$sortBy, $sortOrder] = $this->resolveSorting($validated);
+
+        return [
+            'search' => isset($validated['search']) ? trim($validated['search']) : null,
+            'category_id' => $validated['category_id'] ?? null,
+            'instructor_id' => $validated['instructor_id'] ?? $validated['user_id'] ?? null,
+            'min_price' => $minPrice,
+            'max_price' => $maxPrice,
+            'rating' => isset($validated['rating']) ? (float) $validated['rating'] : null,
+            'sort_by' => $sortBy,
+            'sort_order' => $sortOrder,
+            'per_page' => $validated['per_page'] ?? self::DEFAULT_PER_PAGE,
+            'price_type' => $validated['price'] ?? null,
+        ];
+    }
+
+    /**
+     * Translate sort_by/sort_order (and the legacy sort aliases) into a column.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private function resolveSorting(array $validated): array
+    {
+        if (! empty($validated['sort_by'])) {
+            $sortBy = $validated['sort_by'];
+            $defaultOrder = $sortBy === 'title' ? 'asc' : 'desc';
+
+            return [$sortBy, $validated['sort_order'] ?? $defaultOrder];
+        }
+
+        return match ($validated['sort'] ?? null) {
+            'price_low' => ['price', 'asc'],
+            'price_high' => ['price', 'desc'],
+            default => ['created_at', 'desc'],
+        };
+    }
+
+    /**
+     * Apply the validated sort. Whitelisting and the `rating` special case live
+     * on the model so this listing and the admin listing cannot drift apart.
+     */
+    private function applySorting(Builder $query, array $filters): void
+    {
+        $query->sortedBy($filters['sort_by'], $filters['sort_order']);
+    }
+
+    private function validatedCourseData(Request $request): array
+    {
+        $rules = [
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
@@ -150,7 +275,9 @@ class CourseController extends Controller
             'video_file' => ['nullable', 'file', 'mimetypes:video/mp4,video/webm,video/ogg,video/quicktime,video/x-msvideo', 'max:102400'],
             'price' => ['required', 'numeric', 'min:0', 'max:99999999.99'],
             'is_published' => ['sometimes', 'boolean'],
-        ]);
+        ];
+
+        $validated = $request->validate($rules);
 
         unset($validated['image_file']);
         unset($validated['video_file']);
@@ -170,11 +297,39 @@ class CourseController extends Controller
 
     private function authorizeCourseChange(Request $request, Course $course): void
     {
-        if ($request->user()->role === 'admin' || $course->user_id === $request->user()->id) {
+        if ($this->canManageCourse($request->user(), $course)) {
             return;
         }
 
-        abort(403, 'You can only change your own courses.');
+        abort(403, 'Only admins can change courses.');
+    }
+
+    /**
+     * Only admins manage course content.
+     */
+    private function canManageCourse(?User $user, Course $course): bool
+    {
+        return $user?->canManageCourse($course) ?? false;
+    }
+
+    private function canViewDraft(?User $user, Course $course): bool
+    {
+        return $user?->isAdmin() ?? false;
+    }
+
+    /**
+     * Public course payloads embed lessons -> quizzes -> questions, so the
+     * answer key has to be removed from every nested question.
+     */
+    private function hideQuizAnswerKeys(Course $course): void
+    {
+        foreach ($course->lessons as $lesson) {
+            foreach ($lesson->quizzes as $quiz) {
+                foreach ($quiz->questions as $question) {
+                    $question->makeHidden('correct_option');
+                }
+            }
+        }
     }
 
     private function uniqueSlug(string $title, ?Course $course = null): string
@@ -192,13 +347,6 @@ class CourseController extends Controller
         }
 
         return $slug;
-    }
-
-    private function serializeCourses($courses, ?User $user)
-    {
-        return $courses
-            ->map(fn (Course $course) => $this->serializeCourse($course, $user))
-            ->values();
     }
 
     private function serializeCourse(Course $course, ?User $user): array
