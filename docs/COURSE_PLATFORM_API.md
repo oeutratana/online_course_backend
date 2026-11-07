@@ -50,6 +50,8 @@ endpoints are admin-only.
 | --- | --- | --- |
 | POST | `/register` | public (`role` = `student`) |
 | POST | `/login` | public |
+| POST | `/forgot-password` | public, throttled (6/min) |
+| POST | `/reset-password` | public, throttled (6/min) |
 | GET | `/user`, `/user/profile` | authenticated |
 | PUT | `/user/profile` | authenticated |
 | POST | `/logout` | authenticated |

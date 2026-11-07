@@ -83,6 +83,8 @@ return [
 
     'frontend_url' => env('FRONTEND_URL', 'http://localhost:5173'),
 
+    'reset_password_app_name' => env('RESET_PASSWORD_APP_NAME', 'CourseHub'),
+
     'asset_url' => env('ASSET_URL', '/'),
 
     /*

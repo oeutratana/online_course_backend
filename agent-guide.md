@@ -40,6 +40,7 @@ A Laravel 10 REST API for an online course platform (building an interview/demo 
 
 Public auth:
 - `POST /register`, `POST /login`
+- `POST /forgot-password`, `POST /reset-password` (throttled 6/min; old `/auth/...` paths remain as backwards-compatible aliases). Reset links point at `FRONTEND_URL/reset-password`.
 
 Public callback (no Sanctum token; PayWay authenticates via the `X-PAYWAY-HMAC-SHA512` header):
 - `POST /payments/payway/callback`

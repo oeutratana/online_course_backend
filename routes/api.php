@@ -37,12 +37,19 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
-Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])
     ->middleware('throttle:6,1')
     ->name('api.auth.forgot-password');
-Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])
     ->middleware('throttle:6,1')
     ->name('api.auth.reset-password');
+
+// Backwards-compatible aliases for the existing frontend build. Both paths
+// resolve to the same controller actions, so no logic is duplicated.
+Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])
+    ->middleware('throttle:6,1');
+Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])
+    ->middleware('throttle:6,1');
 
 Route::middleware('web')->prefix('auth/google')->group(function () {
     Route::get('/redirect', [GoogleAuthController::class, 'redirect'])
