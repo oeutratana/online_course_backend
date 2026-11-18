@@ -1,8 +1,8 @@
 [phases.setup]
-pkgs = ["php82", "php82Extensions.pdo_mysql"]
+pkgs = ["php", "php-pdo", "php-mysql"]
 
 [phases.build]
 cmds = ["composer install --no-dev --optimize-autoloader"]
 
 [start]
-cmd = "php artisan serve --host=0.0.0.0 --port=$PORT"
+cmd = "php artisan config:cache && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=$PORT"
