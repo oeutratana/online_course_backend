@@ -28,8 +28,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         xml \
         xmlwriter \
         zip \
-    && a2dismod mpm_event mpm_worker \
-    && a2enmod mpm_prefork rewrite \
+    && rm -f /etc/apache2/mods-enabled/mpm_event.* /etc/apache2/mods-enabled/mpm_worker.* /etc/apache2/mods-enabled/mpm_prefork.* \
+    && ln -s /etc/apache2/mods-available/mpm_prefork.load /etc/apache2/mods-enabled/ \
+    && ln -s /etc/apache2/mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/ \
+    && a2enmod rewrite \
     && sed -ri -e "s!/var/www/html!${APACHE_DOCUMENT_ROOT}!g" /etc/apache2/sites-available/*.conf \
     && sed -ri -e "s!/var/www/!${APACHE_DOCUMENT_ROOT}!g" -e "s/AllowOverride None/AllowOverride All/g" /etc/apache2/apache2.conf \
     && apt-get clean \
